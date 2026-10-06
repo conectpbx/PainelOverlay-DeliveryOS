@@ -1,0 +1,46 @@
+name: Android Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build Release APK
+        run: gradle clean assembleRelease --stacktrace
+
+      - name: Prepare release artifact
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          cp app/build/outputs/apk/release/app-release-unsigned.apk "PainelOverlay-DeliveryOS-${TAG}.apk"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: PainelOverlay-DeliveryOS-*.apk
+          generate_release_notes: true
+          name: PainelOverlay Delivery OS ${{ github.ref_name }}
+          fail_on_unmatched_files: true
