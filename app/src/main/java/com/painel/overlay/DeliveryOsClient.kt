@@ -25,11 +25,11 @@ class DeliveryOsClient(private val context: Context) {
             put("source", "painel-overlay")
             put("latitude", location.latitude)
             put("longitude", location.longitude)
-            put("accuracy_m", location.accuracy.toDouble())
-            put("speed_kmh", speedKmh)
-            put("trip_km", tripKm)
-            put("total_km", totalKm)
-            put("captured_at", location.time)
+            put("accuracy_m", location.accuracy.toDouble().coerceAtLeast(0.0))
+            put("speed_kmh", speedKmh.coerceAtLeast(0.0))
+            put("trip_km", tripKm.coerceAtLeast(0.0))
+            put("total_km", totalKm.coerceAtLeast(0.0))
+            put("captured_at", if (location.time > 0L) location.time else now)
             put("sent_at", now)
         }.toString()
 
@@ -37,10 +37,20 @@ class DeliveryOsClient(private val context: Context) {
     }
 
     fun testConnection(callback: (String) -> Unit) {
+        val now = System.currentTimeMillis()
+
+        // A API do Delivery OS valida o mesmo schema da telemetria real.
+        // O teste usa valores neutros, mas envia todos os campos obrigatórios.
         val payload = JSONObject().apply {
-            put("source", "painel-overlay")
-            put("event", "connection_test")
-            put("sent_at", System.currentTimeMillis())
+            put("source", "painel-overlay-test")
+            put("latitude", 0.0)
+            put("longitude", 0.0)
+            put("accuracy_m", 0.0)
+            put("speed_kmh", 0.0)
+            put("trip_km", Prefs.getTrip(context).coerceAtLeast(0.0))
+            put("total_km", Prefs.getTotal(context).coerceAtLeast(0.0))
+            put("captured_at", now)
+            put("sent_at", now)
         }.toString()
 
         executor.execute {
@@ -85,7 +95,7 @@ class DeliveryOsClient(private val context: Context) {
             val code = connection.responseCode
             val body = try {
                 val stream = if (code in 200..399) connection.inputStream else connection.errorStream
-                stream?.bufferedReader()?.use { it.readText().take(180) }.orEmpty()
+                stream?.bufferedReader()?.use { it.readText().take(300) }.orEmpty()
             } catch (_: Exception) {
                 ""
             }
