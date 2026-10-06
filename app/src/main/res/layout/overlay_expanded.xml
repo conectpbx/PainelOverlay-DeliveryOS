@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="240dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/panel_bg"
+    android:padding="16dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="km/h"
+        android:textColor="@color/muted"
+        android:textSize="10sp"
+        android:letterSpacing="0.15"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/txtSpeedExpanded"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="0"
+        android:textColor="@color/amber"
+        android:textSize="48sp"
+        android:textStyle="bold"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="10dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Trajeto"
+        android:textColor="@color/muted"
+        android:textSize="10sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/txtTrip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0,00 km"
+        android:textColor="@color/green"
+        android:textSize="16sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Total"
+        android:textColor="@color/muted"
+        android:textSize="10sp"
+        android:fontFamily="monospace" />
+
+    <TextView
+        android:id="@+id/txtTotal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="0,00 km"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="14dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/btnResetTrip"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="Zerar"
+            android:textSize="11sp"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btnCollapse"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="6dp"
+            android:text="Minimizar"
+            android:textSize="11sp"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/btnStopService"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Parar"
+            android:textSize="11sp"
+            android:textAllCaps="false" />
+    </LinearLayout>
+</LinearLayout>
