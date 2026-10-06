@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versão da release (ex.: v1.0.0)'
+        required: true
+        default: 'v1.0.0'
 
 permissions:
   contents: write
@@ -28,19 +33,30 @@ jobs:
         with:
           gradle-version: '8.7'
 
-      - name: Build Release APK
-        run: gradle clean assembleRelease --stacktrace
+      - name: Resolve version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.version }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build installable APK
+        run: gradle clean assembleDebug --stacktrace
 
       - name: Prepare release artifact
         shell: bash
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          cp app/build/outputs/apk/release/app-release-unsigned.apk "PainelOverlay-DeliveryOS-${TAG}.apk"
+          VERSION="${{ steps.version.outputs.value }}"
+          cp app/build/outputs/apk/debug/app-debug.apk "PainelOverlay-DeliveryOS-${VERSION}.apk"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.value }}
           files: PainelOverlay-DeliveryOS-*.apk
           generate_release_notes: true
-          name: PainelOverlay Delivery OS ${{ github.ref_name }}
+          name: PainelOverlay Delivery OS ${{ steps.version.outputs.value }}
           fail_on_unmatched_files: true
