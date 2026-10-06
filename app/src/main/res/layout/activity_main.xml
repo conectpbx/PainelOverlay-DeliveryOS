@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Painel"
+            android:textColor="@color/amber"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace"
+            android:layout_marginBottom="4dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Velocímetro e odômetro flutuante"
+            android:textColor="@color/muted"
+            android:textSize="12sp"
+            android:layout_marginBottom="24dp" />
+
+        <TextView
+            android:id="@+id/txtStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_primary"
+            android:fontFamily="monospace"
+            android:textSize="13sp"
+            android:lineSpacingExtra="4dp"
+            android:layout_marginBottom="20dp" />
+
+        <Button
+            android:id="@+id/btnLocationPerm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="1. Permitir localização"
+            android:textAllCaps="false"
+            android:layout_marginBottom="10dp" />
+
+        <Button
+            android:id="@+id/btnOverlayPerm"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2. Permitir exibir sobre outros apps"
+            android:textAllCaps="false"
+            android:layout_marginBottom="20dp" />
+
+        <EditText
+            android:id="@+id/editTotal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="numberDecimal"
+            android:hint="Odômetro atual (km)"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/muted"
+            android:layout_marginBottom="10dp" />
+
+        <Button
+            android:id="@+id/btnSaveTotal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Salvar odômetro total"
+            android:textAllCaps="false"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/btnStart"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Iniciar bolha flutuante"
+            android:textAllCaps="false"
+            android:backgroundTint="@color/green"
+            android:layout_marginBottom="10dp" />
+
+        <Button
+            android:id="@+id/btnStop"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Parar bolha"
+            android:textAllCaps="false"
+            android:backgroundTint="@color/red" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ver em outro aparelho (mesma Wi-Fi)"
+            android:textColor="@color/muted"
+            android:textSize="10sp"
+            android:letterSpacing="0.1"
+            android:layout_marginTop="28dp"
+            android:layout_marginBottom="6dp" />
+
+        <TextView
+            android:id="@+id/txtApiUrl"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="—"
+            android:textColor="@color/amber"
+            android:textSize="15sp"
+            android:fontFamily="monospace"
+            android:textIsSelectable="true" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Integração automática — Delivery OS"
+            android:textColor="@color/amber"
+            android:textStyle="bold"
+            android:layout_marginTop="28dp"
+            android:layout_marginBottom="8dp" />
+
+        <EditText
+            android:id="@+id/editDeliveryEndpoint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="https://delivery-os/api/telemetry"
+            android:inputType="textUri"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/muted" />
+
+        <Spinner
+            android:id="@+id/spinnerDeliveryMethod"
+            android:layout_width="match_parent"
+            android:layout_height="48dp" />
+
+        <Spinner
+            android:id="@+id/spinnerDeliveryAuth"
+            android:layout_width="match_parent"
+            android:layout_height="48dp" />
+
+        <EditText
+            android:id="@+id/editDeliveryHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Nome do header (ex.: X-API-Key)"
+            android:inputType="text"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/muted" />
+
+        <EditText
+            android:id="@+id/editDeliveryToken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Token / API Key / credencial"
+            android:inputType="textPassword"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/muted" />
+
+        <EditText
+            android:id="@+id/editDeliveryInterval"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Intervalo de envio em segundos (mín. 2)"
+            android:inputType="number"
+            android:textColor="@color/text_primary"
+            android:textColorHint="@color/muted" />
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switchDeliverySync"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Enviar GPS/distância automaticamente"
+            android:textColor="@color/text_primary"
+            android:layout_marginTop="8dp" />
+
+        <Button
+            android:id="@+id/btnSaveDelivery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Salvar integração"
+            android:textAllCaps="false"
+            android:layout_marginTop="8dp" />
+
+        <Button
+            android:id="@+id/btnTestDelivery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Testar conexão"
+            android:textAllCaps="false"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:id="@+id/txtDeliveryStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Último envio: nunca"
+            android:textColor="@color/muted"
+            android:textSize="11sp"
+            android:layout_marginTop="6dp" />
+
+    </LinearLayout>
+</ScrollView>
