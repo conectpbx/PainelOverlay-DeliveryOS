@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#0B0E11</color>
+    <color name="panel">#12161B</color>
+    <color name="text_primary">#F2F0EA</color>
+    <color name="muted">#6B7480</color>
+    <color name="amber">#FFB020</color>
+    <color name="green">#3FDB8E</color>
+    <color name="red">#FF5D5D</color>
+</resources>
