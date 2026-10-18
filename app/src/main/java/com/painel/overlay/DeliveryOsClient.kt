@@ -5,43 +5,77 @@ import android.location.Location
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.UUID
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DeliveryOsClient(private val context: Context) {
     private val executor = Executors.newSingleThreadExecutor()
     private val sending = AtomicBoolean(false)
-    @Volatile private var lastSentAt = 0L
+    private val queue = TelemetryQueue(context.applicationContext)
+    @Volatile private var lastEnqueueAt = 0L
 
     fun send(location: Location, speedKmh: Double, tripKm: Double, totalKm: Double) {
         if (!Prefs.isDeliverySyncEnabled(context)) return
 
         val now = System.currentTimeMillis()
         val interval = Prefs.getDeliveryIntervalSeconds(context) * 1000L
-        if (now - lastSentAt < interval || !sending.compareAndSet(false, true)) return
+        if (now - lastEnqueueAt < interval) return
 
-        lastSentAt = now
-        val payload = JSONObject().apply {
-            put("source", "painel-overlay")
-            put("latitude", location.latitude)
-            put("longitude", location.longitude)
-            put("accuracy_m", location.accuracy.toDouble().coerceAtLeast(0.0))
-            put("speed_kmh", speedKmh.coerceAtLeast(0.0))
-            put("trip_km", tripKm.coerceAtLeast(0.0))
-            put("total_km", totalKm.coerceAtLeast(0.0))
-            put("captured_at", if (location.time > 0L) location.time else now)
-            put("sent_at", now)
-        }.toString()
-
-        executeRequest(payload) { sending.set(false) }
+        lastEnqueueAt = now
+        queue.enqueue(
+            TelemetryPoint.fromLocation(
+                location = location,
+                speedKmh = speedKmh,
+                tripKm = tripKm,
+                totalKm = totalKm
+            )
+        )
+        flushPending()
     }
+
+    fun flushPending() {
+        if (!Prefs.isDeliverySyncEnabled(context)) return
+        if (!sending.compareAndSet(false, true)) return
+
+        executor.execute {
+            try {
+                var sent = 0
+                val batch = queue.oldest(100)
+                for (point in batch) {
+                    val result = request(point.toJson())
+                    Prefs.setDeliveryLastResult(
+                        context,
+                        result.message + " | fila=" + queue.count()
+                    )
+
+                    if (result.code in 200..299) {
+                        queue.remove(point.id)
+                        sent++
+                    } else {
+                        // Mantém o ponto na fila para novo retry.
+                        break
+                    }
+                }
+
+                if (sent > 0) {
+                    Prefs.setDeliveryLastResult(
+                        context,
+                        "Sincronizados $sent ponto(s) | fila=" + queue.count()
+                    )
+                }
+            } finally {
+                sending.set(false)
+            }
+        }
+    }
+
+    fun pendingCount(): Int = queue.count()
 
     fun testConnection(callback: (String) -> Unit) {
         val now = System.currentTimeMillis()
-
-        // A API do Delivery OS valida o mesmo schema da telemetria real.
-        // O teste usa valores neutros, mas envia todos os campos obrigatórios.
         val payload = JSONObject().apply {
+            put("point_id", UUID.randomUUID().toString())
             put("source", "painel-overlay-test")
             put("latitude", 0.0)
             put("longitude", 0.0)
@@ -55,23 +89,17 @@ class DeliveryOsClient(private val context: Context) {
 
         executor.execute {
             val result = request(payload)
-            Prefs.setDeliveryLastResult(context, result)
-            callback(result)
+            Prefs.setDeliveryLastResult(context, result.message)
+            callback(result.message)
         }
     }
 
-    private fun executeRequest(payload: String, done: () -> Unit) = executor.execute {
-        try {
-            Prefs.setDeliveryLastResult(context, request(payload))
-        } finally {
-            done()
-        }
-    }
+    private data class HttpResult(val code: Int, val message: String)
 
-    private fun request(payload: String): String {
+    private fun request(payload: String): HttpResult {
         val endpoint = Prefs.getDeliveryEndpoint(context).trim()
         if (!(endpoint.startsWith("http://") || endpoint.startsWith("https://"))) {
-            return "erro: URL inválida"
+            return HttpResult(-1, "erro: URL inválida")
         }
 
         var connection: HttpURLConnection? = null
@@ -100,9 +128,12 @@ class DeliveryOsClient(private val context: Context) {
                 ""
             }
 
-            if (body.isNotBlank()) "HTTP " + code + " — " + body else "HTTP " + code
+            HttpResult(
+                code,
+                if (body.isNotBlank()) "HTTP $code — $body" else "HTTP $code"
+            )
         } catch (e: Exception) {
-            "erro: " + (e.message ?: e.javaClass.simpleName)
+            HttpResult(-1, "erro: " + (e.message ?: e.javaClass.simpleName))
         } finally {
             connection?.disconnect()
         }
@@ -129,5 +160,8 @@ class DeliveryOsClient(private val context: Context) {
         }
     }
 
-    fun shutdown() = executor.shutdownNow()
+    fun shutdown() {
+        runCatching { queue.close() }
+        executor.shutdownNow()
+    }
 }
