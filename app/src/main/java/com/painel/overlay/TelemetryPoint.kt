@@ -6,6 +6,7 @@ import java.util.UUID
 
 data class TelemetryPoint(
     val id: String,
+    val routeId: String?,
     val source: String,
     val latitude: Double,
     val longitude: Double,
@@ -19,6 +20,7 @@ data class TelemetryPoint(
     fun toJson(sentAt: Long = System.currentTimeMillis()): String =
         JSONObject().apply {
             put("point_id", id)
+            if (routeId != null) put("route_id", routeId)
             put("source", source)
             put("latitude", latitude)
             put("longitude", longitude)
@@ -33,6 +35,7 @@ data class TelemetryPoint(
     companion object {
         fun fromLocation(
             location: Location,
+            routeId: String?,
             speedKmh: Double,
             tripKm: Double,
             totalKm: Double
@@ -40,6 +43,7 @@ data class TelemetryPoint(
             val now = System.currentTimeMillis()
             return TelemetryPoint(
                 id = UUID.randomUUID().toString(),
+                routeId = routeId,
                 source = "painel-overlay",
                 latitude = location.latitude,
                 longitude = location.longitude,
