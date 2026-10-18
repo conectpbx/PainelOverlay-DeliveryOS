@@ -26,6 +26,7 @@ class DeliveryOsClient(private val context: Context) {
         queue.enqueue(
             TelemetryPoint.fromLocation(
                 location = location,
+                routeId = Prefs.getActiveRouteId(context),
                 speedKmh = speedKmh,
                 tripKm = tripKm,
                 totalKm = totalKm
@@ -42,8 +43,9 @@ class DeliveryOsClient(private val context: Context) {
             try {
                 var sent = 0
                 val batch = queue.oldest(100)
+
                 for (point in batch) {
-                    val result = request(point.toJson())
+                    val result = request(Prefs.getDeliveryEndpoint(context), point.toJson())
                     Prefs.setDeliveryLastResult(
                         context,
                         result.message + " | fila=" + queue.count()
@@ -53,9 +55,12 @@ class DeliveryOsClient(private val context: Context) {
                         queue.remove(point.id)
                         sent++
                     } else {
-                        // Mantém o ponto na fila para novo retry.
                         break
                     }
+                }
+
+                if (queue.count() == 0) {
+                    flushPendingRouteFinish()
                 }
 
                 if (sent > 0) {
@@ -70,12 +75,33 @@ class DeliveryOsClient(private val context: Context) {
         }
     }
 
+    private fun flushPendingRouteFinish() {
+        val pending = Prefs.getPendingRouteFinish(context) ?: return
+        val payload = JSONObject().apply {
+            put("route_id", pending.routeId)
+            put("ended_at", pending.endedAt)
+            put("end_total_km", pending.totalKm)
+            put("distance_km", pending.distanceKm)
+        }.toString()
+
+        val endpoint = Prefs.getDeliveryEndpoint(context).trimEnd('/') + "/finish"
+        val result = request(endpoint, payload)
+
+        if (result.code in 200..299) {
+            Prefs.clearPendingRouteFinish(context)
+            Prefs.setDeliveryLastResult(context, "Jornada finalizada e sincronizada")
+        } else {
+            Prefs.setDeliveryLastResult(context, "Fim da jornada pendente — " + result.message)
+        }
+    }
+
     fun pendingCount(): Int = queue.count()
 
     fun testConnection(callback: (String) -> Unit) {
         val now = System.currentTimeMillis()
         val payload = JSONObject().apply {
             put("point_id", UUID.randomUUID().toString())
+            Prefs.getActiveRouteId(context)?.let { put("route_id", it) }
             put("source", "painel-overlay-test")
             put("latitude", 0.0)
             put("longitude", 0.0)
@@ -88,7 +114,7 @@ class DeliveryOsClient(private val context: Context) {
         }.toString()
 
         executor.execute {
-            val result = request(payload)
+            val result = request(Prefs.getDeliveryEndpoint(context), payload)
             Prefs.setDeliveryLastResult(context, result.message)
             callback(result.message)
         }
@@ -96,8 +122,8 @@ class DeliveryOsClient(private val context: Context) {
 
     private data class HttpResult(val code: Int, val message: String)
 
-    private fun request(payload: String): HttpResult {
-        val endpoint = Prefs.getDeliveryEndpoint(context).trim()
+    private fun request(endpointRaw: String, payload: String): HttpResult {
+        val endpoint = endpointRaw.trim()
         if (!(endpoint.startsWith("http://") || endpoint.startsWith("https://"))) {
             return HttpResult(-1, "erro: URL inválida")
         }
@@ -105,19 +131,17 @@ class DeliveryOsClient(private val context: Context) {
         var connection: HttpURLConnection? = null
         return try {
             connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
-                requestMethod = Prefs.getDeliveryMethod(context).uppercase()
+                requestMethod = "POST"
                 connectTimeout = 8_000
                 readTimeout = 8_000
                 setRequestProperty("Accept", "application/json")
                 setRequestProperty("Content-Type", "application/json; charset=utf-8")
                 applyAuthentication(this)
-                doOutput = requestMethod in setOf("POST", "PUT", "PATCH")
+                doOutput = true
             }
 
-            if (connection.doOutput) {
-                connection.outputStream.use {
-                    it.write(payload.toByteArray(Charsets.UTF_8))
-                }
+            connection.outputStream.use {
+                it.write(payload.toByteArray(Charsets.UTF_8))
             }
 
             val code = connection.responseCode
