@@ -42,6 +42,7 @@ class OverlayService : Service() {
         const val CHANNEL_ID = "painel_channel"
         const val NOTIF_ID = 1
         const val ACTION_STOP = "com.painel.overlay.STOP"
+        const val ACTION_SYNC = "com.painel.overlay.SYNC"
         const val API_PORT = 8080
     }
 
@@ -74,8 +75,9 @@ class OverlayService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopSelf()
+        when (intent?.action) {
+            ACTION_STOP -> stopSelf()
+            ACTION_SYNC -> if (::deliveryOsClient.isInitialized) deliveryOsClient.flushPending()
         }
         return START_STICKY
     }
