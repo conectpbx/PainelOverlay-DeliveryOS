@@ -14,6 +14,12 @@ object Prefs {
     private const val KEY_DELIVERY_AUTH_TYPE = "delivery_auth_type"
     private const val KEY_DELIVERY_HEADER_NAME = "delivery_header_name"
     private const val KEY_DELIVERY_INTERVAL_SECONDS = "delivery_interval_seconds"
+    private const val KEY_ACTIVE_ROUTE_ID = "active_route_id"
+    private const val KEY_ACTIVE_ROUTE_STARTED_AT = "active_route_started_at"
+    private const val KEY_PENDING_FINISH_ROUTE_ID = "pending_finish_route_id"
+    private const val KEY_PENDING_FINISH_ENDED_AT = "pending_finish_ended_at"
+    private const val KEY_PENDING_FINISH_TOTAL_KM = "pending_finish_total_km"
+    private const val KEY_PENDING_FINISH_DISTANCE_KM = "pending_finish_distance_km"
 
     private fun sp(ctx: Context) = ctx.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
 
@@ -45,5 +51,57 @@ object Prefs {
     fun getDeliveryIntervalSeconds(ctx: Context) = sp(ctx).getInt(KEY_DELIVERY_INTERVAL_SECONDS, 5).coerceIn(2, 3600)
     fun setDeliveryIntervalSeconds(ctx: Context, v: Int) {
         sp(ctx).edit().putInt(KEY_DELIVERY_INTERVAL_SECONDS, v.coerceIn(2, 3600)).apply()
+    }
+
+    fun getActiveRouteId(ctx: Context): String? =
+        sp(ctx).getString(KEY_ACTIVE_ROUTE_ID, null)
+
+    fun getActiveRouteStartedAt(ctx: Context): Long =
+        sp(ctx).getLong(KEY_ACTIVE_ROUTE_STARTED_AT, 0L)
+
+    fun startRoute(ctx: Context, routeId: String, startedAt: Long = System.currentTimeMillis()) {
+        sp(ctx).edit()
+            .putString(KEY_ACTIVE_ROUTE_ID, routeId)
+            .putLong(KEY_ACTIVE_ROUTE_STARTED_AT, startedAt)
+            .apply()
+    }
+
+    fun queueRouteFinish(ctx: Context, endedAt: Long = System.currentTimeMillis()) {
+        val routeId = getActiveRouteId(ctx) ?: return
+        sp(ctx).edit()
+            .putString(KEY_PENDING_FINISH_ROUTE_ID, routeId)
+            .putLong(KEY_PENDING_FINISH_ENDED_AT, endedAt)
+            .putString(KEY_PENDING_FINISH_TOTAL_KM, getTotal(ctx).toString())
+            .putString(KEY_PENDING_FINISH_DISTANCE_KM, getTrip(ctx).toString())
+            .remove(KEY_ACTIVE_ROUTE_ID)
+            .remove(KEY_ACTIVE_ROUTE_STARTED_AT)
+            .apply()
+    }
+
+    data class PendingRouteFinish(
+        val routeId: String,
+        val endedAt: Long,
+        val totalKm: Double,
+        val distanceKm: Double
+    )
+
+    fun getPendingRouteFinish(ctx: Context): PendingRouteFinish? {
+        val s = sp(ctx)
+        val id = s.getString(KEY_PENDING_FINISH_ROUTE_ID, null) ?: return null
+        return PendingRouteFinish(
+            routeId = id,
+            endedAt = s.getLong(KEY_PENDING_FINISH_ENDED_AT, System.currentTimeMillis()),
+            totalKm = s.getString(KEY_PENDING_FINISH_TOTAL_KM, "0")?.toDoubleOrNull() ?: 0.0,
+            distanceKm = s.getString(KEY_PENDING_FINISH_DISTANCE_KM, "0")?.toDoubleOrNull() ?: 0.0
+        )
+    }
+
+    fun clearPendingRouteFinish(ctx: Context) {
+        sp(ctx).edit()
+            .remove(KEY_PENDING_FINISH_ROUTE_ID)
+            .remove(KEY_PENDING_FINISH_ENDED_AT)
+            .remove(KEY_PENDING_FINISH_TOTAL_KM)
+            .remove(KEY_PENDING_FINISH_DISTANCE_KM)
+            .apply()
     }
 }
