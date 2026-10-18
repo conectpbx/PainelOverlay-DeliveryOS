@@ -171,6 +171,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startJourney() {
+        if (!hasLocationPermission()) {
+            Toast.makeText(this, "Permita a localização antes de iniciar a jornada", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         if (Prefs.getActiveRouteId(this) != null) {
             Toast.makeText(this, "Já existe uma jornada ativa", Toast.LENGTH_SHORT).show()
             return
