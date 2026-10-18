@@ -19,6 +19,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.content.ContextCompat
+import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
 
@@ -33,6 +34,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var spinnerDeliveryAuth: Spinner
     private lateinit var switchDeliverySync: SwitchCompat
     private lateinit var txtDeliveryStatus: TextView
+    private lateinit var txtJourneyStatus: TextView
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -65,6 +67,7 @@ class MainActivity : AppCompatActivity() {
         spinnerDeliveryAuth = findViewById(R.id.spinnerDeliveryAuth)
         switchDeliverySync = findViewById(R.id.switchDeliverySync)
         txtDeliveryStatus = findViewById(R.id.txtDeliveryStatus)
+        txtJourneyStatus = findViewById(R.id.txtJourneyStatus)
 
         val methods = arrayOf("POST", "PUT", "PATCH")
         val authTypes = arrayOf("Bearer Token", "API Key", "Header personalizado", "Nenhuma")
@@ -161,8 +164,55 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        findViewById<Button>(R.id.btnStartJourney).setOnClickListener { startJourney() }
+        findViewById<Button>(R.id.btnFinishJourney).setOnClickListener { finishJourney() }
         findViewById<Button>(R.id.btnStart).setOnClickListener { startBubble() }
         findViewById<Button>(R.id.btnStop).setOnClickListener { stopBubble() }
+    }
+
+    private fun startJourney() {
+        if (Prefs.getActiveRouteId(this) != null) {
+            Toast.makeText(this, "Já existe uma jornada ativa", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val routeId = UUID.randomUUID().toString()
+        Prefs.resetTrip(this)
+        Prefs.startRoute(this, routeId)
+        startBubble()
+        refreshStatus()
+
+        Toast.makeText(
+            this,
+            "Jornada iniciada",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    private fun finishJourney() {
+        val routeId = Prefs.getActiveRouteId(this)
+        if (routeId == null) {
+            Toast.makeText(this, "Nenhuma jornada ativa", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Prefs.queueRouteFinish(this)
+
+        val syncIntent = Intent(this, OverlayService::class.java).apply {
+            action = OverlayService.ACTION_SYNC
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(syncIntent)
+        } else {
+            startService(syncIntent)
+        }
+
+        refreshStatus()
+        Toast.makeText(
+            this,
+            "Jornada finalizada. Sincronização enviada.",
+            Toast.LENGTH_LONG
+        ).show()
     }
 
     private fun saveDeliveryPreferences(endpoint: String, interval: Int, enabled: Boolean) {
@@ -217,7 +267,7 @@ class MainActivity : AppCompatActivity() {
 
         Toast.makeText(
             this,
-            "Bolha iniciada — toque nela para expandir",
+            "Serviço GPS iniciado",
             Toast.LENGTH_LONG
         ).show()
     }
@@ -237,6 +287,17 @@ class MainActivity : AppCompatActivity() {
             "Localização: " + locOk +
             "\nSobrepor apps: " + overlayOk +
             "\nOdômetro total salvo: " + "%.2f km".format(Prefs.getTotal(this))
+
+        val activeRoute = Prefs.getActiveRouteId(this)
+        val pendingFinish = Prefs.getPendingRouteFinish(this)
+        txtJourneyStatus.text = when {
+            activeRoute != null ->
+                "Jornada ativa\nID: " + activeRoute.take(8) +
+                "\nPercorrido: " + "%.2f km".format(Prefs.getTrip(this))
+            pendingFinish != null ->
+                "Jornada finalizada — sincronização pendente\nID: " + pendingFinish.routeId.take(8)
+            else -> "Jornada: não iniciada"
+        }
 
         editTotal.hint = "%.1f".format(Prefs.getTotal(this))
         txtDeliveryStatus.text =
