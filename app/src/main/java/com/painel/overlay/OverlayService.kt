@@ -14,6 +14,7 @@ import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.provider.Settings
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -55,7 +56,9 @@ class OverlayService : Service() {
         startForeground(NOTIF_ID, buildNotification())
         deliveryOsClient = DeliveryOsClient(applicationContext)
 
-        addBubble()
+        if (Settings.canDrawOverlays(this)) {
+            addBubble()
+        }
         startLocationUpdates()
         startApiServer()
     }
@@ -104,8 +107,8 @@ class OverlayService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Painel ativo")
-            .setContentText("Velocímetro e odômetro rodando em segundo plano")
+            .setContentTitle("Delivery OS GPS ativo")
+            .setContentText("Rastreamento e sincronização rodando em segundo plano")
             .setSmallIcon(android.R.drawable.ic_menu_compass)
             .setOngoing(true)
             .addAction(0, "Parar", stopPending)
