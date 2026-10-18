@@ -6,13 +6,14 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 class TelemetryQueue(context: Context) :
-    SQLiteOpenHelper(context, "telemetry_queue.db", null, 1) {
+    SQLiteOpenHelper(context, "telemetry_queue.db", null, 2) {
 
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(
             """
             CREATE TABLE telemetry_points (
                 id TEXT PRIMARY KEY,
+                route_id TEXT,
                 source TEXT NOT NULL,
                 latitude REAL NOT NULL,
                 longitude REAL NOT NULL,
@@ -28,14 +29,25 @@ class TelemetryQueue(context: Context) :
         db.execSQL(
             "CREATE INDEX telemetry_points_created_idx ON telemetry_points(created_at ASC)"
         )
+        db.execSQL(
+            "CREATE INDEX telemetry_points_route_idx ON telemetry_points(route_id, created_at ASC)"
+        )
     }
 
-    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+    override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE telemetry_points ADD COLUMN route_id TEXT")
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS telemetry_points_route_idx ON telemetry_points(route_id, created_at ASC)"
+            )
+        }
+    }
 
     @Synchronized
     fun enqueue(point: TelemetryPoint) {
         val values = ContentValues().apply {
             put("id", point.id)
+            if (point.routeId != null) put("route_id", point.routeId) else putNull("route_id")
             put("source", point.source)
             put("latitude", point.latitude)
             put("longitude", point.longitude)
@@ -69,8 +81,10 @@ class TelemetryQueue(context: Context) :
             limit.coerceIn(1, 200).toString()
         ).use { cursor ->
             while (cursor.moveToNext()) {
+                val routeIndex = cursor.getColumnIndex("route_id")
                 result += TelemetryPoint(
                     id = cursor.getString(cursor.getColumnIndexOrThrow("id")),
+                    routeId = if (routeIndex >= 0 && !cursor.isNull(routeIndex)) cursor.getString(routeIndex) else null,
                     source = cursor.getString(cursor.getColumnIndexOrThrow("source")),
                     latitude = cursor.getDouble(cursor.getColumnIndexOrThrow("latitude")),
                     longitude = cursor.getDouble(cursor.getColumnIndexOrThrow("longitude")),
