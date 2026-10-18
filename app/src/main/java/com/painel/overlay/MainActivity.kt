@@ -199,10 +199,9 @@ class MainActivity : AppCompatActivity() {
         if (!Settings.canDrawOverlays(this)) {
             Toast.makeText(
                 this,
-                "Permita exibir sobre outros apps primeiro (passo 2)",
+                "Rastreamento será iniciado sem a bolha flutuante",
                 Toast.LENGTH_SHORT
             ).show()
-            return
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
